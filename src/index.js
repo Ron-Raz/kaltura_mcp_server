@@ -9,6 +9,13 @@ const { version } = createRequire(import.meta.url)("../package.json");
 const PORT = process.env.PORT || 3000;
 const DEFAULT_KALTURA_URL = "https://www.kaltura.com";
 
+function ksError() {
+  return {
+    content: [{ type: "text", text: "A Kaltura Session (KS) is required. Pass it via the X-Kaltura-KS request header." }],
+    isError: true,
+  };
+}
+
 async function callKalturaApi(kalturaUrl, service, action, params = {}) {
   const url = new URL(`/api_v3/service/${service}/action/${action}`, kalturaUrl);
   url.searchParams.set("format", "1");
@@ -29,7 +36,7 @@ async function callKalturaApi(kalturaUrl, service, action, params = {}) {
 function createServer(ks, kalturaUrl) {
   const server = new McpServer({
     name: "kaltura-mcp-server",
-    version: "1.0.0",
+    version,
   });
 
   server.tool(
@@ -46,14 +53,12 @@ function createServer(ks, kalturaUrl) {
     "Returns information about the current Kaltura session (partner ID, user, type, expiry, privileges)",
     {},
     async () => {
+      if (!ks) return ksError();
       try {
         const data = await callKalturaApi(kalturaUrl, "session", "get", { ks });
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (err) {
-        return {
-          content: [{ type: "text", text: err.message }],
-          isError: true,
-        };
+        return { content: [{ type: "text", text: err.message }], isError: true };
       }
     }
   );
@@ -68,12 +73,10 @@ const CORS_HEADERS = {
 };
 
 const httpServer = http.createServer(async (req, res) => {
-  // Attach CORS headers to every response
   for (const [key, value] of Object.entries(CORS_HEADERS)) {
     res.setHeader(key, value);
   }
 
-  // Handle preflight
   if (req.method === "OPTIONS") {
     res.writeHead(204);
     res.end();
@@ -86,25 +89,21 @@ const httpServer = http.createServer(async (req, res) => {
     return;
   }
 
-  if (req.method === "GET" && req.url === "/mcp") {
+  const pathname = new URL(req.url, "http://localhost").pathname;
+
+  if (req.method === "GET" && pathname === "/mcp") {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ status: "ok", transport: "streamable-http" }));
     return;
   }
 
-  if (req.url !== "/mcp") {
+  if (pathname !== "/mcp") {
     res.writeHead(404);
     res.end("Not found");
     return;
   }
 
-  const ks = req.headers["x-kaltura-ks"];
-  if (!ks) {
-    res.writeHead(401, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ error: "Missing required header: X-Kaltura-KS" }));
-    return;
-  }
-
+  const ks = req.headers["x-kaltura-ks"] ?? null;
   const kalturaUrl = (req.headers["x-kaltura-url"] ?? DEFAULT_KALTURA_URL).replace(/\/$/, "");
 
   const transport = new StreamableHTTPServerTransport({
