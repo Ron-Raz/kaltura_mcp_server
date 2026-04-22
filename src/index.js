@@ -91,12 +91,6 @@ const httpServer = http.createServer(async (req, res) => {
 
   const pathname = new URL(req.url, "http://localhost").pathname;
 
-  if (req.method === "GET" && pathname === "/mcp") {
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ status: "ok", transport: "streamable-http" }));
-    return;
-  }
-
   if (pathname !== "/mcp") {
     res.writeHead(404);
     res.end("Not found");
