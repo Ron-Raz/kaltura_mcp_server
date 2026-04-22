@@ -58,7 +58,25 @@ function createServer(ks, kalturaUrl) {
   return server;
 }
 
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, X-Kaltura-KS, X-Kaltura-URL, mcp-session-id",
+};
+
 const httpServer = http.createServer(async (req, res) => {
+  // Attach CORS headers to every response
+  for (const [key, value] of Object.entries(CORS_HEADERS)) {
+    res.setHeader(key, value);
+  }
+
+  // Handle preflight
+  if (req.method === "OPTIONS") {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
   if (req.method === "GET" && req.url === "/health") {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ status: "ok" }));
