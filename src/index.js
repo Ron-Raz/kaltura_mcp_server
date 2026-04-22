@@ -2,6 +2,9 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
 import http from "http";
+import { createRequire } from "module";
+
+const { version } = createRequire(import.meta.url)("../package.json");
 
 const PORT = process.env.PORT || 3000;
 const DEFAULT_KALTURA_URL = "https://www.kaltura.com";
@@ -79,7 +82,7 @@ const httpServer = http.createServer(async (req, res) => {
 
   if (req.method === "GET" && req.url === "/health") {
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ status: "ok" }));
+    res.end(JSON.stringify({ status: "ok", version }));
     return;
   }
 
