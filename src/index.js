@@ -4,8 +4,26 @@ import { z } from "zod";
 import http from "http";
 
 const PORT = process.env.PORT || 3000;
+const DEFAULT_KALTURA_URL = "https://www.kaltura.com";
 
-function createServer() {
+async function callKalturaApi(kalturaUrl, service, action, params = {}) {
+  const url = new URL(`/api_v3/service/${service}/action/${action}`, kalturaUrl);
+  url.searchParams.set("format", "1");
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value);
+  }
+
+  const response = await fetch(url.toString());
+  const data = await response.json();
+
+  if (data?.objectType === "KalturaAPIException") {
+    throw new Error(`Kaltura API error ${data.code}: ${data.message}`);
+  }
+
+  return data;
+}
+
+function createServer(ks, kalturaUrl) {
   const server = new McpServer({
     name: "kaltura-mcp-server",
     version: "1.0.0",
@@ -16,13 +34,25 @@ function createServer() {
     "Returns a friendly greeting",
     { name: z.string().optional().describe("Name to greet") },
     async ({ name }) => ({
-      content: [
-        {
-          type: "text",
-          text: `Hello, ${name ?? "World"}! This MCP server is running.`,
-        },
-      ],
+      content: [{ type: "text", text: `Hello, ${name ?? "World"}! This MCP server is running.` }],
     })
+  );
+
+  server.tool(
+    "get_session_info",
+    "Returns information about the current Kaltura session (partner ID, user, type, expiry, privileges)",
+    {},
+    async () => {
+      try {
+        const data = await callKalturaApi(kalturaUrl, "session", "get", { ks });
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (err) {
+        return {
+          content: [{ type: "text", text: err.message }],
+          isError: true,
+        };
+      }
+    }
   );
 
   return server;
@@ -41,11 +71,20 @@ const httpServer = http.createServer(async (req, res) => {
     return;
   }
 
+  const ks = req.headers["x-kaltura-ks"];
+  if (!ks) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Missing required header: X-Kaltura-KS" }));
+    return;
+  }
+
+  const kalturaUrl = (req.headers["x-kaltura-url"] ?? DEFAULT_KALTURA_URL).replace(/\/$/, "");
+
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined, // stateless
   });
 
-  const mcpServer = createServer();
+  const mcpServer = createServer(ks, kalturaUrl);
 
   res.on("close", () => {
     transport.close();
