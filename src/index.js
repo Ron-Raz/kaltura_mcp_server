@@ -69,7 +69,8 @@ function createServer(ks, kalturaUrl) {
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, X-Kaltura-KS, X-Kaltura-URL, mcp-session-id",
+  "Access-Control-Allow-Headers": "*",
+  "Access-Control-Expose-Headers": "*",
 };
 
 const httpServer = http.createServer(async (req, res) => {
