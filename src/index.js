@@ -51,11 +51,12 @@ function createServer(ks, kalturaUrl) {
   server.tool(
     "get_session_info",
     "Returns information about the current Kaltura session (partner ID, user, type, expiry, privileges)",
-    {},
-    async () => {
-      if (!ks) return ksError();
+    { ks: z.string().optional().describe("Kaltura Session token. Falls back to the X-Kaltura-KS request header if omitted.") },
+    async ({ ks: ksParam }) => {
+      const resolvedKs = ksParam ?? ks;
+      if (!resolvedKs) return ksError();
       try {
-        const data = await callKalturaApi(kalturaUrl, "session", "get", { ks });
+        const data = await callKalturaApi(kalturaUrl, "session", "get", { ks: resolvedKs });
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (err) {
         return { content: [{ type: "text", text: err.message }], isError: true };
