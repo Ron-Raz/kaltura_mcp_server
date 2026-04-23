@@ -5,7 +5,7 @@ An MCP server for the Kaltura media platform. Exposes tools for searching and in
 ## Endpoint
 
 ```
-POST https://<host>/mcp
+POST https://kalturamcpserver-production.up.railway.app/mcp
 ```
 
 The server uses the [Streamable HTTP transport](https://spec.modelcontextprotocol.io/specification/2025-03-26/basic/transports/#streamable-http). All tool calls go to `POST /mcp`. `GET /health` returns `{ status, version }`.
@@ -63,7 +63,7 @@ Add the following to your `claude_desktop_config.json`:
   "mcpServers": {
     "kaltura": {
       "type": "http",
-      "url": "https://<your-railway-host>/mcp",
+      "url": "https://kalturamcpserver-production.up.railway.app/mcp",
       "headers": {
         "X-Kaltura-KS": "<your-ks>"
       }
@@ -86,3 +86,7 @@ npm run dev        # starts with --watch on port 3000
 ## Deployment
 
 Deploys to [Railway](https://railway.com) via `railway.json`. Set the `PORT` environment variable if needed (Railway sets it automatically). The `/health` endpoint is used as the healthcheck.
+
+## Contact
+
+For questions: ron.raz@kaltura.com
