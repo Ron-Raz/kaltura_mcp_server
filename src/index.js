@@ -131,7 +131,7 @@ function createServer(ks, kalturaUrl) {
             .map((h) => h.fieldName)
             .filter(Boolean);
 
-          const captionMatches = (obj.itemsData ?? [])
+          const allCaptions = (obj.itemsData ?? [])
             .filter((d) => d.itemsType === "caption")
             .flatMap((d) =>
               (d.items ?? []).map((item) => ({
@@ -141,6 +141,17 @@ function createServer(ks, kalturaUrl) {
                 language: item.language,
               }))
             );
+
+          // Deduplicate by startsAt+line, preferring English when duplicates exist
+          const captionsByKey = new Map();
+          for (const caption of allCaptions) {
+            const key = `${caption.startsAt}::${caption.line}`;
+            const existing = captionsByKey.get(key);
+            if (!existing || caption.language === "en") {
+              captionsByKey.set(key, caption);
+            }
+          }
+          const captionMatches = [...captionsByKey.values()];
 
           return {
             id: entry.id,
