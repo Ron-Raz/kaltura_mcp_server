@@ -122,16 +122,19 @@ function createServer(ks, kalturaUrl) {
         const totalCount = data.totalCount ?? 0;
         const results = (data.objects ?? []).map((obj) => {
           const entry = obj.object ?? {};
-          const highlights = obj.highlights ?? [];
 
-          const matchedFields = [...new Set(highlights.map((h) => h.fieldName).filter(Boolean))];
+          const matchedFields = (obj.highlight ?? [])
+            .map((h) => h.fieldName)
+            .filter(Boolean);
 
-          const captionMatches = highlights
-            .filter((h) => h.fieldName?.toLowerCase().includes("caption"))
-            .flatMap((h) =>
-              (h.hits ?? []).map((hit) => ({
-                text: hit.value,
-                ...(hit.externalTimestamp != null && { timestamp_ms: hit.externalTimestamp }),
+          const captionMatches = (obj.itemsData ?? [])
+            .filter((d) => d.itemsType === "caption")
+            .flatMap((d) =>
+              (d.items ?? []).map((item) => ({
+                line: item.line,
+                startsAt: item.startsAt,
+                endsAt: item.endsAt,
+                language: item.language,
               }))
             );
 
