@@ -9,6 +9,13 @@ const { version } = createRequire(import.meta.url)("../package.json");
 const PORT = process.env.PORT || 3000;
 const DEFAULT_KALTURA_URL = "https://www.kaltura.com";
 
+const SERVER_METADATA = {
+  name: "kaltura-mcp-server",
+  version,
+  description: "MCP server for the Kaltura media platform — search and manage media entries using natural language.",
+  author: "ron.raz@kaltura.com",
+};
+
 function ksError() {
   return {
     content: [{ type: "text", text: "A Kaltura Session (KS) is required. Pass it via the X-Kaltura-KS request header." }],
@@ -52,10 +59,7 @@ async function callKalturaApiPost(kalturaUrl, service, action, body) {
 }
 
 function createServer(ks, kalturaUrl) {
-  const server = new McpServer({
-    name: "kaltura-mcp-server",
-    version,
-  });
+  const server = new McpServer(SERVER_METADATA);
 
   server.tool(
     "hello_world",
